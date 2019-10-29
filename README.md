@@ -12,7 +12,7 @@ Static variables are shared
 All instances are of the same class share a single copy of the static variables.
 
 
-SpringBootBook
+SpringBootBookProject
 Resources:
 Fundamental to REST is the concept of resource. A resource is anything that can be accessed or manipulated. Examples of resources include “videos,” “blog entries,” “user profiles,” “images,” and even tangible things such as persons or devices. Resources are typically related to other resources. For example, in an ecommerce application, a customer can place an order for any number of products. In this scenario, the product resources are related to the corresponding order resource. It is also possible for a resource to be grouped into collections. Using the same ecommerce example, “orders” is a collection of individual “order” resources.
 
@@ -78,3 +78,56 @@ Controllers in Spring Web MVC are declared using the stereotype org.springframew
 
 View:
 Spring Web MVC supports a variety of view technologies such as JSP, Velocity, Freemarker, and XSLT. Spring Web MVC uses the org.springframework.web.servlet.View interface to accomplish this. The View interface has two methods
+
+Resource Identification:
+We begin the resource identification process by analyzing requirements and extracting nouns. At a high level, the QuickPoll application has users that create and interact with polls. From the previous statement, you can identify User and Poll as nouns and classify them as resources. Similarly, users can vote on polls and view the voting results, making Vote another resource. This resource modeling process is similar to database modeling in that it is used to identify entities or object-oriented design that identifies domain objects. 
+
+Resource Representation:
+The next step in the REST API design process is defining resource representations and representation formats. REST APIs typically support multiple formats such as HTML, JSON, and XML. The choice of the format largely depends on the API audience. For example, a REST service that is internal to the company might only support JSON format, whereas a public REST API might speak XML and JSON formats. In this chapter and in the rest of the book, JSON will be the preferred format for our operations.
+
+
+Endpoint Identification:
+REST resources are identified using URI endpoints. Well-designed REST APIs should have endpoints that are understandable, intuitive, and easy to use. Remember that we build REST APIs for our consumers to use. Hence, the names and the hierarchy that we choose for our endpoints should be unambiguous to consumers. We design the endpoints for our service using best practices and conventions widely used in the industry. The first convention is to use a base URI for our REST service. The base URI provides an  entry point for accessing the REST API. Public REST API providers typically use a subdomain such as http://api.domain.com or http://dev.domain.com as their base URI. Popular examples include GitHub’s https://api.github.com and Twitter’s https://api.twitter.com. By creating a separate subdomain,  you prevent any possible name collisions with webpages. It also allows you to enforce security policies that are different from the regular website. To keep things simple, we will be using http://localhost:8080 as our base URI in this book. 
+
+Action Identification:
+HTTP Verbs allow clients to interact and access resources using their endpoints. In our QuickPoll application, the clients must be able to perform one or more CRUD operations on resources such as Poll and Vote. Analyzing the use cases from the “Introducing QuickPoll” section, Table 4-2 shows the operations allowed on Poll/Polls collection resources along with the success and error responses. Notice that on the Poll collection resource we allow GET and POST operations but deny PUT and Delete operations. A POST on the collection resource allows the client to create new polls. Similarly, we allow GET, PUT, and Delete operations on a given Poll resource but deny POST operation. The service returns a 404 status code for any GET, PUT, and DELETE operation on a Poll resource that doesn’t exist. Similarly, any server errors would result in a status code of 500 sent to the client.
+
+
+QuickPoll Architecture:
+The QuickPoll application will be made of a Web or REST API layer and a Repository layer with a domain layer crosscutting those two, as depicted in Figure 4-3. A layered approach provides a clear separation of concerns, making applications easy to build and maintain. Each layer interacts with the layer below using a well-defined contract. As long as the contract is maintained, it is possible to swap out underlying implementations without any impact to the overall system
+
+Repository Implementation:
+Repositories, or Data Access Objects (DAO), provide an abstraction for interacting with datastores. Repositories traditionally include an interface that provides a set of finder methods such as findById, findAll for retrieving data, and methods to persist and delete data. Repositories also include a class that implements this interface using datastore-specific technologies. For example, a repository dealing with a database uses technology such as JDBC or JPA, and a repository dealing with LDAP would use JNDI. It is also customary to have one Repository per domain object.
+
+Embedded Database:
+In the previous section, we created repositories, but we need a relational database for persisting data. The relational database market is full of options ranging from commercial databases such as Oracle, SQL Server to open source databases such as MySQL, and PostgreSQL. To speed up our QuickPoll application development, we will be using HSQLDB, a popular in-memory database. In-memory, aka embedded, databases don’t require any additional installations and can simply run as a JVM process. Their quick startup and shutdown capabilities make them ideal candidates for prototyping and integration testing. At the same time, they don’t usually provide a persistent storage and the application needs to seed the database every time it bootstraps. 
+
+API Implementation:
+In this section, we will create Spring MVC controllers and implement our REST API endpoints. We begin by creating the com.apress.controller package under src\main\java to house all of the controllers.
+
+PollController Implementation:
+The PollController provides all of the necessary endpoints to access and manipulate the Poll and Polls resources. Listing 4-14 shows a barebones PollController class.
+
+VoteController Implementation:
+Following the principles used to create PollController, we implement the VoteController class. Listing 4-21 gives the code for the VoteController class along with the functionality to create a vote. The VoteController uses an injected instance of VoteRepository to perform CRUD operations on Vote instances
+
+ComputeResultController Implementation:
+The final piece remaining for us is the implementation of the ComputeResult resource. Because we don’t have any domain objects that can directly help generate this resource representation, we implement two Data Transfer Objects or DTOs—OptionCount and VoteResult. The OptionCount DTO contains the ID of the option and a count of votes casted for that option. The VoteResult DTO contains the total votes cast and a collection of OptionCount instances. These two DTOs are created under the com.apress.dto package, and their implementation is given in Listing 4-24.
+
+InputField Validation:
+As a famous proverb goes, “Garbage in Garbage Out”; input field validation should be another area of
+emphasis in every application. Consider the scenario in which a client requests a new poll to be created but
+doesn’t include the poll question in the request. Figure 5-7 shows a Postman request with a missing question
+and the corresponding response. Make sure that you set the Content-Type header to “application/json”
+before firing the Postman request. From the response, you can see that the poll still gets created. Creating a
+poll with a missing question can result in data inconsistencies and other bugs.
+
+Externalizing Error Messages:
+We have made quite a bit of progress with our input validation and provided the client with descriptive error
+messages that can help them troubleshoot and recover from those errors. However, the actual validation
+error message may not be very descriptive and API developers might want to change it. It would be even
+better if they were able to pull this message from an external properties file. The property file approach not
+only simplifies Java code but also makes it easy to swap the messages without making code changes. It also
+sets the stage for future internationalization/localization needs. To achieve this, create a messages.properties
+file under the src\main\resources folder and add the following two messages:
+
